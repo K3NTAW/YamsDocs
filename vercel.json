@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
+  "buildCommand": "npm install --registry=${NPM_REGISTRY} && npm run build",
+  "installCommand": "npm install --registry=${NPM_REGISTRY}",
   "framework": "nextjs",
   "regions": ["iad1"]
 } 
