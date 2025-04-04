@@ -1,77 +1,58 @@
-"use client";
+import { createClient } from '@/lib/supabase-server';
+import { redirect } from 'next/navigation';
+import DocumentEditor from '@/components/DocumentEditor';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase-client";
-import { Document } from "@/types/supabase";
-import DocumentEditor from "@/components/DocumentEditor";
+export default async function DocumentPage({ params }: { params: { id: string } }) {
+  const supabase = await createClient();
 
-export default function DocumentPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
-  const supabase = createClient();
-  const [document, setDocument] = useState<Document | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: { user } } = await supabase.auth.getUser();
 
-  useEffect(() => {
-    async function loadDocument() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          router.push("/auth/signin");
-          return;
-        }
+  if (!user) {
+    redirect('/auth/signin');
+  }
 
-        const { data, error } = await supabase
-          .from("documents")
-          .select("*, profiles(name, avatar_url)")
-          .eq("id", params.id)
-          .single();
+  const { data: document, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('id', params.id)
+    .single();
 
-        if (error) throw error;
-        setDocument(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load document");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadDocument();
-  }, [params.id]);
-
-  const handleSave = async (content: string) => {
-    try {
-      const { error } = await supabase
-        .from("documents")
-        .update({ content, updated_at: new Date().toISOString() })
-        .eq("id", params.id);
-
-      if (error) throw error;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save document");
-    }
-  };
-
-  if (loading) {
+  if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50 px-4 py-12">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h1 className="text-red-600 text-xl font-semibold mb-4">Error Loading Document</h1>
+            <p className="text-gray-600">{error.message}</p>
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (error || !document) {
+  if (!document) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-red-600">{error || "Document not found"}</div>
+      <div className="min-h-screen bg-gray-50 px-4 py-12">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h1 className="text-gray-900 text-xl font-semibold mb-4">Document Not Found</h1>
+            <p className="text-gray-600">The document you&apos;re looking for doesn&apos;t exist or you don&apos;t have permission to view it.</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <DocumentEditor document={document} onSave={handleSave} />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto">
+        <div className="py-8 px-4 sm:px-6 lg:px-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">{document.title}</h1>
+          <div className="bg-white rounded-lg shadow">
+            <DocumentEditor document={document} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 } 
