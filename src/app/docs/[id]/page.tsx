@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
 import DocumentEditor from '@/components/DocumentEditor';
 
-export default async function DocumentPage({ params }: { params: { id: string } }) {
+export default async function DocumentPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -14,7 +15,7 @@ export default async function DocumentPage({ params }: { params: { id: string } 
   const { data: document, error } = await supabase
     .from('documents')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (error) {
